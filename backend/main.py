@@ -1,4 +1,3 @@
-# main.py
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -50,9 +49,8 @@ def get_users(db: Session = Depends(get_db)):
     users = db.query(models.User).all()
     return {"users": users}
 
-# ==========================================
-# 📚 CONTENT DELIVERY ENDPOINTS (PHASE 1)
-# ==========================================
+# 
+# CONTENT DELIVERY ENDPOINTS (PHASE 1)
 
 @app.get("/courses", response_model=list[schemas.CourseBase])
 def get_courses(db: Session = Depends(get_db)):
@@ -70,9 +68,7 @@ def get_lessons_for_course(course_id: int, db: Session = Depends(get_db)):
     
     return lessons
 
-# ==========================================
-# 🔐 USER AUTHENTICATION ENDPOINTS
-# ==========================================
+#  USER AUTHENTICATION ENDPOINTS
 
 @app.post("/auth/signup", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -137,9 +133,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-# ==========================================
-# 📈 USER PROGRESS ENDPOINTS
-# ==========================================
+
+# USER PROGRESS ENDPOINTS
+
 
 @app.post("/progress/update")
 def update_progress(
