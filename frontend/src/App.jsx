@@ -25,6 +25,10 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
+import Navbar from "./pages/Navbar";
+import CourseView from "./pages/CourseView";
 
 function App() {
   return (
@@ -32,13 +36,12 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/auth" />} />
         <Route path="/auth" element={<Auth />} />
-        
+        <Route path="/home" element={<Home />} />
+        <Route path="/navbar" element={<Navbar />} />
         {/* Placeholder for the next step! */}
-        <Route path="/dashboard" element={
-          <div className="flex items-center justify-center min-h-screen">
-            <h1 className="text-4xl font-bold text-green-600">Login Successful! Welcome to the Dashboard.</h1>
-          </div>
-        } />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/course/:courseId" element={<CourseView />} />
+
       </Routes>
     </Router>
   );

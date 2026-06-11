@@ -35,7 +35,8 @@ export default function Auth() {
 
         // Save token & redirect to dashboard
         localStorage.setItem("token", data.access_token);
-        navigate("/dashboard");
+        // navigate("/dashboard");
+        navigate("/home");
 
       } else {
         // Signup expects standard JSON
