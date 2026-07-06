@@ -1,24 +1,3 @@
-# === FRONTEND (Node.js / React) ===
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Dependencies
-node_modules/
-
-# Build outputs
-dist/
-dist-ssr/
-*.local
-
-# === BACKEND (Python) ===
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -31,6 +10,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
+dist/
 downloads/
 eggs/
 .eggs/
@@ -69,12 +49,24 @@ coverage.xml
 *.mo
 *.pot
 
-# Django / Flask stuff
+# Django stuff:
+*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+
+# Flask stuff:
 instance/
 .webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -92,23 +84,31 @@ Pipfile.lock
 # PEP 582
 __pypackages__/
 
-# Celery
+# Celery stuff
 celerybeat-schedule
 celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
 
-# === ENVIRONMENTS ===
+# Environments
 .env
-.env.local
-.env.*.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
 
 # mypy
 .mypy_cache/
@@ -118,19 +118,14 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# === EDITORS & IDEs ===
+# IDEs
 .vscode/
-!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
 *~
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# === OS FILES ===
 .DS_Store
+
+# OS files
 Thumbs.db
+.DS_Store

@@ -11,6 +11,22 @@ import auth
 import jwt
 from jwt.exceptions import InvalidTokenError
 
+# from openai import OpenAI
+import os
+
+from sentence_transformers import SentenceTransformer
+from google import genai # <--- The brand new SDK import
+# Configure the free Gemini API
+
+from dotenv import load_dotenv
+load_dotenv()
+os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
+client = genai.Client() # Initializes the new SDK automatically using the environment variable
+
+# 2. Configure Local AI for the database search (Downloads on first run)
+print("Loading local AI embedder...")
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
+print("Local AI loaded!")
 app = FastAPI(title="AI CS E-Learning Platform")
 app.add_middleware(
     CORSMiddleware,
@@ -163,3 +179,48 @@ def update_progress(
     
     db.commit()
     return {"status": "success", "message": f"Lesson {progress.lesson_id} progress updated!"}
+
+import time # Import this at the top of main.py if not already there
+@app.post("/ai/chat", response_model=schemas.ChatResponse)
+def ai_chat(
+    request: schemas.ChatRequest, 
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    user_message = request.message
+    
+    try:
+        # STEP 1: Generate a 384-dimensional embedding LOCALLY (No API needed!)
+        query_embedding = embedder.encode(user_message).tolist()
+        
+        # STEP 2: Query PostgreSQL using pgvector
+        query = text("""
+            SELECT title, content 
+            FROM lessons 
+            ORDER BY content_embedding <=> :embedding 
+            LIMIT 2
+        """)
+        results = db.execute(query, {"embedding": str(query_embedding)}).fetchall()
+        
+        context_text = "\n\n".join([f"Course Module: {row.title}\n{row.content}" for row in results])
+        
+        # STEP 3: Prompt the Gemini Chat Model using the NEW syntax
+        prompt = f"""You are a helpful Computer Science AI Tutor for {current_user.username}.
+        Answer the user's question clearly using ONLY the context provided below.
+        
+        CURRICULUM CONTEXT:
+        {context_text}
+        
+        USER QUESTION: {user_message}
+        """
+
+        # The new SDK generate_content method
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt,
+        )
+        
+        return {"reply": response.text}
+
+    except Exception as e:
+        return {"reply": f"System Error: {str(e)}"}

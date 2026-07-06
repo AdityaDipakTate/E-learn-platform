@@ -73,7 +73,8 @@ def seed_database():
         
         # Check if the embedding column is currently active in models.py
         has_embedding = hasattr(models.Lesson, 'content_embedding')
-        mock_vector = [0.1] * 1536 if has_embedding else None
+        # mock_vector = [0.1] * 1536 if has_embedding else None
+        mock_vector = [0.1] * 768 if has_embedding else None
 
         for course_data in SEED_DATA:
             # Create the Course entry

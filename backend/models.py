@@ -29,8 +29,9 @@ class Lesson(Base):
     
     # content_embedding = Column(Vector(1536))  # For AI RAG search later    
     # If using pgvector, uncomment the line below after installing pgvector package:
-    # from pgvector.sqlalchemy import Vector
+    from pgvector.sqlalchemy import Vector
     # content_embedding = Column(Vector(1536)) # 1536 is standard for OpenAI embeddings
+    content_embedding = Column(Vector(768)) # 1536 is standard for OpenAI embeddings
 
 class UserProgress(Base):
     __tablename__ = "user_progress"

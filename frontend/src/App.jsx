@@ -29,6 +29,7 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import Navbar from "./pages/Navbar";
 import CourseView from "./pages/CourseView";
+import ChatWidget from "./components/ChatWidget";
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
         <Route path="/course/:courseId" element={<CourseView />} />
 
       </Routes>
+      <ChatWidget />
     </Router>
   );
 }

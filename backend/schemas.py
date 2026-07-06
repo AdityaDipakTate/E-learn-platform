@@ -55,3 +55,10 @@ class Token(BaseModel):
 class ProgressUpdate(BaseModel):
     lesson_id: int
     is_completed: bool = True
+
+# --- AI CHAT SCHEMAS ---
+class ChatRequest(BaseModel):
+    message: str
+
+class ChatResponse(BaseModel):
+    reply: str
