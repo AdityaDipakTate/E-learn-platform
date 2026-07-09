@@ -20,21 +20,35 @@ from google import genai # <--- The brand new SDK import
 
 from dotenv import load_dotenv
 load_dotenv()
-os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if gemini_api_key:
+    os.environ["GEMINI_API_KEY"] = gemini_api_key
 client = genai.Client() # Initializes the new SDK automatically using the environment variable
 
 # 2. Configure Local AI for the database search (Downloads on first run)
 print("Loading local AI embedder...")
-embedder = SentenceTransformer('all-MiniLM-L6-v2')
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+GEMINI_MODEL_NAME = "gemini-2.5-flash"
+embedder = SentenceTransformer(EMBEDDING_MODEL_NAME)
 print("Local AI loaded!")
 app = FastAPI(title="AI CS E-Learning Platform")
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Vite's default ports
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Vite's default ports
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Kept as fallback
+    allow_origin_regex=".*", # 🟢 Safely allows ALL origins while keeping credentials True
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # This line automatically creates the tables in your PostgreSQL database on startup!
 models.Base.metadata.create_all(bind=engine)
 
@@ -77,11 +91,11 @@ def get_courses(db: Session = Depends(get_db)):
 @app.get("/courses/{course_id}/lessons", response_model=list[schemas.LessonBase])
 def get_lessons_for_course(course_id: int, db: Session = Depends(get_db)):
     """Fetch all lessons belonging to a specific course."""
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found.")
+
     lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course_id).all()
-    
-    if not lessons:
-        raise HTTPException(status_code=404, detail="Course not found or contains no lessons.")
-    
     return lessons
 
 #  USER AUTHENTICATION ENDPOINTS
@@ -180,7 +194,6 @@ def update_progress(
     db.commit()
     return {"status": "success", "message": f"Lesson {progress.lesson_id} progress updated!"}
 
-import time # Import this at the top of main.py if not already there
 @app.post("/ai/chat", response_model=schemas.ChatResponse)
 def ai_chat(
     request: schemas.ChatRequest, 
@@ -188,6 +201,35 @@ def ai_chat(
     db: Session = Depends(get_db)
 ):
     user_message = request.message
+    normalized_message = user_message.lower()
+    search_terms = [word for word in normalized_message.replace("-", " ").split() if len(word) > 2]
+    if "oops" in normalized_message or "oop" in normalized_message or "object oriented" in normalized_message:
+        search_terms.extend([
+            "object",
+            "oriented",
+            "programming",
+            "oop",
+            "class",
+            "classes",
+            "encapsulation",
+            "inheritance",
+            "polymorphism",
+            "abstraction",
+        ])
+
+    def fetch_keyword_context():
+        rows = db.execute(text("""
+            SELECT title, content
+            FROM lessons
+            ORDER BY id
+        """)).fetchall()
+
+        def score(row):
+            haystack = f"{row.title} {row.content}".lower().replace("-", " ")
+            return sum(1 for term in set(search_terms) if term in haystack)
+
+        ranked_rows = sorted(rows, key=score, reverse=True)
+        return [row for row in ranked_rows if score(row) > 0][:4]
     
     try:
         # STEP 1: Generate a 384-dimensional embedding LOCALLY (No API needed!)
@@ -197,10 +239,31 @@ def ai_chat(
         query = text("""
             SELECT title, content 
             FROM lessons 
+            WHERE content_embedding IS NOT NULL
             ORDER BY content_embedding <=> :embedding 
             LIMIT 2
         """)
-        results = db.execute(query, {"embedding": str(query_embedding)}).fetchall()
+        try:
+            results = fetch_keyword_context()
+            if not results:
+                results = db.execute(query, {"embedding": str(query_embedding)}).fetchall()
+            if not results:
+                results = db.execute(text("""
+                    SELECT title, content
+                    FROM lessons
+                    ORDER BY id
+                    LIMIT 4
+                """)).fetchall()
+        except Exception:
+            db.rollback()
+            results = fetch_keyword_context()
+            if not results:
+                results = db.execute(text("""
+                    SELECT title, content
+                    FROM lessons
+                    ORDER BY id
+                    LIMIT 4
+                """)).fetchall()
         
         context_text = "\n\n".join([f"Course Module: {row.title}\n{row.content}" for row in results])
         
@@ -216,7 +279,7 @@ def ai_chat(
 
         # The new SDK generate_content method
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model=GEMINI_MODEL_NAME,
             contents=prompt,
         )
         

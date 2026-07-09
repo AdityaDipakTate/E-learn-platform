@@ -1,7 +1,7 @@
 # models.py
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, Boolean, DateTime
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from pgvector.sqlalchemy import Vector
 import datetime
 
 Base = declarative_base()
@@ -27,11 +27,8 @@ class Lesson(Base):
     content = Column(Text, nullable=False)      # Holds your core explanation & code blocks
     video_url = Column(String, nullable=True)    # Optional: Stores YouTube/Vimeo embed URL
     
-    # content_embedding = Column(Vector(1536))  # For AI RAG search later    
-    # If using pgvector, uncomment the line below after installing pgvector package:
-    from pgvector.sqlalchemy import Vector
-    # content_embedding = Column(Vector(1536)) # 1536 is standard for OpenAI embeddings
-    content_embedding = Column(Vector(768)) # 1536 is standard for OpenAI embeddings
+    # all-MiniLM-L6-v2 creates 384-dimensional embeddings.
+    content_embedding = Column(Vector(384))
 
 class UserProgress(Base):
     __tablename__ = "user_progress"
